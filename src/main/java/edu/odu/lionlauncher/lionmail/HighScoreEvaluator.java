@@ -16,6 +16,8 @@ public class HighScoreEvaluator implements Runnable{
     File watchFile;
     File backFile;
 
+    EvaluationStrategy evaluationStrategy;
+
     Boolean sendEmail;
     private long lastModified;
 
@@ -23,13 +25,25 @@ public class HighScoreEvaluator implements Runnable{
 
     public HighScoreEvaluator(File oldFile, File newFile, Boolean sendMail)
     {
+        evaluationStrategy = new EvaluationStrategy(oldFile, newFile, new File(System.getProperty("user.dir") + "/emailBody.txt"));
+
         sendEmail = sendMail;
 
         watchFile = newFile;
         backFile = oldFile;
 
+        System.out.println("LionMail v2\nWritten By Stephen Dailey\n");
         System.out.println(watchFile.getAbsolutePath());
         lastModified = System.currentTimeMillis();
+    }
+
+    public void loadStrategy(EvaluationStrategy e)
+    {
+        paused = true;
+
+        evaluationStrategy = e;
+
+        paused = false;
     }
 
     @Override
@@ -180,7 +194,7 @@ public class HighScoreEvaluator implements Runnable{
             String sendAddress = bumpedOff + "@ODU.EDU";
             if(sendEmail)
             {
-                System.out.println("Sending Message to : " + sendAddress);
+                System.out.println("Sending Message to: " + sendAddress);
                 try{
                     //Send message
                     GoogleMail.Send("ODUVideoGameDesignClub", "VGDCADMIN001", sendAddress,
@@ -207,11 +221,10 @@ public class HighScoreEvaluator implements Runnable{
     {
         String message = null;
         try {
-            message = readFile(System.getProperty("user.dir") + "/emailBody.txt");
+            message = readFile(evaluationStrategy.getEmailBodyFile().getAbsolutePath());
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         message = message.replace("<player>",bumped);
         return message;
     }
