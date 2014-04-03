@@ -12,32 +12,24 @@ import java.util.List;
  * Created by trueLove on 4/2/14.
  */
 public class HighScoreEvaluator implements Runnable{
-    BufferedReader readNew = null;
-    BufferedReader readOld = null;
-
-    String oldFileContents = null;
-
-    String oldFileName;
-    String newFileName;
 
     File watchFile;
+    File backFile;
 
     Boolean sendEmail;
     private long lastModified;
 
     private Boolean paused = false;
 
-    public HighScoreEvaluator(String oldf, String newf, Boolean send)
+    public HighScoreEvaluator(File oldFile, File newFile, Boolean sendMail)
     {
-        oldFileName = oldf;
-        newFileName = newf;
-        sendEmail = send;
+        sendEmail = sendMail;
 
-        watchFile = new File(System.getProperty("user.dir") + "/" + newFileName);
+        watchFile = newFile;
+        backFile = oldFile;
+
         System.out.println(watchFile.getAbsolutePath());
         lastModified = System.currentTimeMillis();
-
-        System.out.println(bumpedOffMessage("SDAIL007"));
     }
 
     @Override
@@ -47,7 +39,7 @@ public class HighScoreEvaluator implements Runnable{
         {
             if (hasUpdated())
             {
-                System.out.println("Modified: " + new Date(getLastModified()).toString());
+                System.out.println("Modified: " + new Date(lastModified).toString());
                 Evaluate();
             }
             try{
@@ -63,15 +55,11 @@ public class HighScoreEvaluator implements Runnable{
 //        run();
 //    }
 
-    public boolean hasUpdated()
+    private boolean hasUpdated()
     {
         return (watchFile.lastModified() > lastModified);
     }
 
-    public long getLastModified()
-    {
-        return lastModified;
-    }
 
     public void Evaluate()
     {
@@ -86,76 +74,25 @@ public class HighScoreEvaluator implements Runnable{
         //
         //  OPEN AND READ NEW FILE
         //
-        try
-        {
-            readNew = new BufferedReader(new FileReader(System.getProperty("user.dir") + "/" + newFileName));
-        }
-        catch(java.io.FileNotFoundException FNF){System.out.println("Error opening " + System.getProperty("user.dir") + "/" + newFileName);}
-        System.out.println("Opened " + newFileName + " successfully");
 
-
-        try {
-            String lineNew = readNew.readLine();
-
-            oldFileContents = "";
-
-            while (lineNew != null)
-            {
-                newFile.add(lineNew);
-                oldFileContents += (lineNew + "\n");
-                lineNew = readNew.readLine();
-            }
-        }
-        catch(Exception IOE)
-        {
-            System.out.println("Something happened");
-        }
-        System.out.println(newFile.size() + " lines read");
-        try{
-            readNew.close();
-        }
-        catch(java.io.IOException IOE){System.out.println("Error in closing " + newFileName);}
-
-        System.out.println("Closed " + newFileName + " successfully\n");
+        newFile = readHighScoreFile(watchFile);
 
         //
         //  OPEN AND READ OLD FILE
         //
 
-        try
-        {
-            readOld = new BufferedReader(new FileReader(System.getProperty("user.dir") + "/" + oldFileName));
-        }
-        catch(java.io.FileNotFoundException FNF){System.out.println("Error opening " + System.getProperty("user.dir") + "/" + oldFileName);}
-        System.out.println("Opened " + oldFileName + " successfully");
-
-        try {
-            String lineOld = readOld.readLine();
-
-            while (lineOld != null)
-            {
-                oldFile.add(lineOld);
-                lineOld = readOld.readLine();
-            }
-        }
-        catch(Exception IOE)
-        {
-            System.out.println("Something happened");
-        }
-        System.out.println(oldFile.size() + " lines read");
-        try{
-            readOld.close();
-        }
-        catch(java.io.IOException IOE){System.out.println("Error in closing " + oldFileName);}
-
-        System.out.println("Closed " + oldFileName + " successfully\n");
+       oldFile = readHighScoreFile(backFile);
 
 
         //Tranfer contents of new file into old file.  Make a "new" new file.
         try{
-            FileOutputStream writer = new FileOutputStream(System.getProperty("user.dir") + "/" + oldFileName);
+            FileOutputStream writer = new FileOutputStream(backFile);
             writer.write((new String()).getBytes());
-            writer.write(oldFileContents.getBytes());
+            for(String s: newFile)
+            {
+            writer.write(s.getBytes());
+            writer.write(System.getProperty("line.separator").getBytes());
+            }
             writer.close();
         }
         catch(Exception e){System.out.println("Failed to write");}
@@ -177,7 +114,6 @@ public class HighScoreEvaluator implements Runnable{
                 }
                 catch(NumberFormatException e)
                 {System.out.println(e);}
-                //oldScores.add(oldFile.get(i).substring(7,oldFile.get(i).length()));
             }
             else if(oldFile.get(i).substring(0,4).equals("name"))
             {
@@ -188,7 +124,6 @@ public class HighScoreEvaluator implements Runnable{
                 }
                 catch(NumberFormatException e)
                 {System.out.println(e);}
-                //oldNames.add(oldFile.get(i).substring(6,oldFile.get(i).length()));
             }
         }
 
@@ -205,7 +140,6 @@ public class HighScoreEvaluator implements Runnable{
                 }
                 catch(NumberFormatException e)
                 {System.out.println(e);}
-                //oldScores.add(oldFile.get(i).substring(7,oldFile.get(i).length()));
             }
             else if(newFile.get(i).substring(0,4).equals("name"))
             {
@@ -216,10 +150,10 @@ public class HighScoreEvaluator implements Runnable{
                 }
                 catch(NumberFormatException e)
                 {System.out.println(e);}
-                //oldScores.add(oldFile.get(i).substring(7,oldFile.get(i).length()));
             }
         }
 
+        //Print differences
         for(int i = 0; i < oldNames.length; i++)
         {
             try{
@@ -231,6 +165,7 @@ public class HighScoreEvaluator implements Runnable{
         }
         System.out.println();
 
+        //Get Candidate for bumping
         String bumpedOff;
         try{
             bumpedOff = oldNames[oldNames.length-1];
@@ -238,6 +173,7 @@ public class HighScoreEvaluator implements Runnable{
         }
         catch(Exception e){System.out.println(e + "\nError: Continuing without email notification\n"); return;}
 
+        //Determine if they are completely off the leaderboards (don't have a score higher up)
         if(newFile.size() > 0 && !Arrays.asList(newNames).contains(bumpedOff))
         {
             System.out.println(bumpedOff + " has been bumped off the leaderboard!\n");
@@ -246,7 +182,7 @@ public class HighScoreEvaluator implements Runnable{
             {
                 System.out.println("Sending Message to : " + sendAddress);
                 try{
-
+                    //Send message
                     GoogleMail.Send("ODUVideoGameDesignClub", "VGDCADMIN001", sendAddress,
                             "SDAILEY@CS.ODU.EDU", "Your score was beaten!", bumpedOffMessage(bumpedOff));
                     System.out.println("Sending Successful\n");
@@ -263,6 +199,7 @@ public class HighScoreEvaluator implements Runnable{
         }
         else System.out.println("Continuing without email notification");
 
+        //update for next time
         lastModified = watchFile.lastModified();
     }
 
@@ -274,8 +211,6 @@ public class HighScoreEvaluator implements Runnable{
         } catch (IOException e) {
             e.printStackTrace();
         }
-        //"We have some bad news, " + bumped + "!\n\nYou have been bumped off the leaderboards of Ride the Lion!" +
-        //			" Come back soon to take back your place!\n\nSincerely,\nThe Video Game Design and Development Club\nOld Dominion University";
 
         message = message.replace("<player>",bumped);
         return message;
@@ -293,6 +228,40 @@ public class HighScoreEvaluator implements Runnable{
         }
 
         return stringBuilder.toString();
+    }
+
+    private ArrayList<String> readHighScoreFile(File highscoreFile)
+    {
+        BufferedReader fileReader = null;
+        ArrayList<String> fileContentsByLine = new ArrayList<String>();
+        try
+        {
+            fileReader = new BufferedReader(new FileReader(highscoreFile));
+            System.out.println("Opened " + highscoreFile.getName() + " successfully");
+        }
+        catch(java.io.FileNotFoundException FNF){System.out.println("Error opening " + highscoreFile);}
+
+        try {
+            String lineOld = fileReader.readLine();
+
+            while (lineOld != null)
+            {
+                fileContentsByLine.add(lineOld);
+                lineOld = fileReader.readLine();
+            }
+        }
+        catch(Exception IOE)
+        {
+            System.out.println("Something happened");
+        }
+        System.out.println(fileContentsByLine.size() + " lines read");
+        try{
+            fileReader.close();
+            System.out.println("Closed " + highscoreFile.getName() + " successfully\n");
+        }
+        catch(java.io.IOException IOE){System.out.println("Error in closing " + highscoreFile.getName());}
+
+        return fileContentsByLine;
     }
 
 

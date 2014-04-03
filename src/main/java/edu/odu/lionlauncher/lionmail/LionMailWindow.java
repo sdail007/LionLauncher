@@ -5,6 +5,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.PrintStream;
+import java.io.File;
 
 /**
  * Created by trueLove on 4/2/14.
@@ -81,7 +82,7 @@ public class LionMailWindow extends JFrame{
         pack();
         setVisible (true);
 
-        hse = new HighScoreEvaluator("rideold.ini" , "ride.ini", false);
+        hse = new HighScoreEvaluator(new File("/Users/trueLove/Documents/Video Game Development/Ride the Lion/LionLauncher/rideold.ini") , new File("/Users/trueLove/Documents/Video Game Development/Ride the Lion/LionLauncher/ride.ini"), false);
         new Thread(hse).start();            //This enables the program to continue execution
     }
 }
