@@ -43,10 +43,8 @@ public class HighScoreEvaluator implements Runnable{
     @Override
     public void run()
     {
-        System.out.println("Running");
         while(!paused)
         {
-            System.out.println("test");
             if (hasUpdated())
             {
                 System.out.println("Modified: " + new Date(getLastModified()).toString());
@@ -59,11 +57,11 @@ public class HighScoreEvaluator implements Runnable{
         }
     }
 
-    public void start()
-    {
-        System.out.println("Starting: " + new Date(System.currentTimeMillis()).toString());
-        run();
-    }
+//    public void start()
+//    {
+//        System.out.println("Starting: " + new Date(System.currentTimeMillis()).toString());
+//        run();
+//    }
 
     public boolean hasUpdated()
     {
